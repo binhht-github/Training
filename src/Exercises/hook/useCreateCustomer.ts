@@ -2,6 +2,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 
 export const createProduct = async (productData: any): Promise<any> => {
+    console.log("new data ", productData);
+
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const shouldFail = Math.random() < 0.5;
@@ -32,41 +34,50 @@ export const createProduct = async (productData: any): Promise<any> => {
 };
 
 
-export function useCreateCustomer() {
-    const queryClient = useQueryClient()
+export function useCreateProduct() {
+    const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: createProduct,
+
+        // 1. Optimistic update
         onMutate: async (newProduct) => {
-            // Cancel queries to prevent conflicts
-            await queryClient.cancelQueries({ queryKey: ['customers'] })
+            await queryClient.cancelQueries({ queryKey: ['product'] });
 
-            // Snapshot previous data
-            const previousCustomers = queryClient.getQueryData(['customers'])
+            const previousProducts = queryClient.getQueryData<any>(['product']);
 
-            // Optimistically update cache
-            queryClient.setQueryData(['customers'], (old: any) => {
-                if (!old) return old
-                return {
-                    ...old,
-                    data: [{ ...newProduct, id: 'temp-' + Date.now() }, ...old.data],
-                    totalItems: old.totalItems + 1
-                }
-            })
+            queryClient.setQueryData(['product'], (old: any) => {
+                if (!Array.isArray(old)) return old;
+                return [
+                    { ...newProduct, id: 'temp-' + Date.now() },
+                    ...old
+                ];
+            });
 
-            return { previousCustomers }
+            return { previousProducts };
         },
-        onError: (err, newProduct, context) => {
-            // Rollback on error
-            queryClient.setQueryData(['customers'], context?.previousCustomers)
-            alert("Thêm thất bại")
+
+        // 2. Error rollback
+        onError: (_error, _variables, context) => {
+            queryClient.setQueryData(['product'], context?.previousProducts);
+            alert("Thêm thất bại");
         },
-        onSuccess: (customer) => {
-            // Invalidate and refetch
-            queryClient.invalidateQueries({ queryKey: ['customers'] })
-            alert("Thêm thành công")
+
+        // 3. Refetch to get real data
+        onSuccess: (newProduct) => {
+
+            queryClient.setQueriesData({ queryKey: ['product'] }, (oldData: any) => {
+                if (!Array.isArray(oldData)) return oldData;
+
+                const newData = [...oldData, newProduct]
+
+                console.log("Updated product list:", newData);
+                return newData;
+            });
+            // queryClient.invalidateQueries({ queryKey: ['product'] });
+            alert("Thêm thành công");
         },
-    })
+    });
 }
 // custome
 export const updateProduct = async (productData: any): Promise<any> => {
@@ -109,7 +120,7 @@ export const customerUpdate = () => {
                 return newData;
             });
 
-
+            // queryClient.invalidateQueries({ queryKey: ['product'] })
             alert("update thành công");
         },
     });

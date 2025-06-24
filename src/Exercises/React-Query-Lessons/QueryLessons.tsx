@@ -2,7 +2,7 @@
 import axios from "axios"
 import { useState } from "react";
 import { useCustomQuery } from "../hook/useCustomQuery";
-import { customerUpdate, useCreateCustomer } from "../hook/useCreateCustomer";
+import { customerUpdate, useCreateProduct } from "../hook/useCreateCustomer";
 
 export type IProduct = {
     id: number;
@@ -38,6 +38,7 @@ const fetchCategories = async () => {
 export const QurreyLesson = () => {
 
     const [category, setCategory] = useState<string>("")
+    const [isOpenNew, setIsOpenNew] = useState<boolean>(false)
 
 
     const { data: products, isLoading: productLoading, isError: productIsError, error: productError } = useCustomQuery<IProduct[]>({
@@ -49,15 +50,12 @@ export const QurreyLesson = () => {
         queryFn: () => fetchCategories(),
     })
 
-    console.log("product ", products);
-    console.log(typeof products);
-
 
     if (productIsError || categoriesIsError) return <div>Lỗi tải trang {categoriesError?.message}{productError?.message}</div>
 
     return (
         <div className="w-full flex flex-col flex-1">
-            <div className="m-5 flex justify-between">
+            <div className="m-5 flex justify-between relative">
                 <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
@@ -73,8 +71,12 @@ export const QurreyLesson = () => {
                 <div className="">
                     <UpdateCustomerForm />
                 </div>
-                <div className="">
-                    <CreateCustomerForm />
+                <div>
+                    <button className="p-2 bg-blue-500 text-white rounded-lg w-full" onClick={() => { setIsOpenNew(true) }}>add new</button>
+                </div>
+                <div className={`absolute ${!isOpenNew ? 'hidden' : ""} bg-white z-10 p-5 top-20`}>
+                    <div><button className="p-3 bg-blue-500 rounded-xl mb-5" onClick={() => { setIsOpenNew(false) }}>x</button></div>
+                    <CreateProductForm handleIsOpen={setIsOpenNew} />
                 </div>
             </div>
 
@@ -122,38 +124,52 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
 
 
-function CreateCustomerForm() {
-    const createMutation = useCreateCustomer()
+function CreateProductForm({ handleIsOpen }: { handleIsOpen: (value: boolean) => void }) {
+    const createMutation = useCreateProduct(); // 🟡 nên rename thành `useCreateProduct`
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        const formData = new FormData(e.currentTarget)
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
 
         try {
             await createMutation.mutateAsync({
-                businessName: formData.get('businessName') as string,
-                email: formData.get('email') as string,
-                status: 'active'
-            })
-            // Reset form or redirect
+                title: formData.get("title") as string,
+                price: Number(formData.get("price")),
+                description: formData.get("description") as string,
+                category: formData.get("category") as string,
+                image: formData.get("image") ?? "https://cdn.vietnambiz.vn/2019/8/15/product-review-writing-services-15658537611611796432875.jpg",
+                rating: {
+                    rate: Number(formData.get("rate")),
+                    count: Number(formData.get("count")),
+                },
+            });
+            handleIsOpen(false)
         } catch (error) {
-            // Error is handled in onError
+            // handled in onError
         }
-    }
+    };
 
     return (
-        <form onSubmit={handleSubmit}>
-            <input name="businessName" placeholder="Business Name" required />
-            <input name="email" type="email" placeholder="Email" required />
+        <form onSubmit={handleSubmit} className="space-y-2">
+            <input name="title" placeholder="Title" required className="border p-1 rounded w-full" />
+            <input name="price" type="number" placeholder="Price" required className="border p-1 rounded w-full" />
+            <input name="description" placeholder="Description" required className="border p-1 rounded w-full" />
+            <input name="category" placeholder="Category" required className="border p-1 rounded w-full" />
+            <input name="image" placeholder="Image URL" required className="border p-1 rounded w-full" />
+            <input name="rate" type="number" step="0.1" placeholder="Rating Rate" required className="border p-1 rounded w-full" />
+            <input name="count" type="number" placeholder="Rating Count" required className="border p-1 rounded w-full" />
+
             <button
+                className="p-2 bg-blue-500 text-white rounded-lg w-full"
                 type="submit"
                 disabled={createMutation.isPending}
             >
-                {createMutation.isPending ? 'Creating...' : 'Create Customer'}
+                {createMutation.isPending ? "Creating..." : "Create Product"}
             </button>
         </form>
-    )
+    );
 }
+
 
 function UpdateCustomerForm() {
     const update = customerUpdate()
@@ -176,6 +192,6 @@ function UpdateCustomerForm() {
     }
 
     return (
-        <button onClick={handleUpdate}>Update click</button>
+        <button className="p-2 bg-blue-300 rounded-lg" onClick={handleUpdate}>Update click</button>
     )
 }
