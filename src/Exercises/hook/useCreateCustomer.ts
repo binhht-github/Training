@@ -2,8 +2,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 
 export const createProduct = async (productData: any): Promise<any> => {
-    console.log("new data ", productData);
-
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const shouldFail = Math.random() < 0.5;
@@ -68,10 +66,7 @@ export function useCreateProduct() {
 
             queryClient.setQueriesData({ queryKey: ['product'] }, (oldData: any) => {
                 if (!Array.isArray(oldData)) return oldData;
-
                 const newData = [...oldData, newProduct]
-
-                console.log("Updated product list:", newData);
                 return newData;
             });
             // queryClient.invalidateQueries({ queryKey: ['product'] });
@@ -116,7 +111,6 @@ export const customerUpdate = () => {
                     product.id === updatedProduct.id ? updatedProduct : product
                 );
 
-                console.log("Updated product list:", newData);
                 return newData;
             });
 

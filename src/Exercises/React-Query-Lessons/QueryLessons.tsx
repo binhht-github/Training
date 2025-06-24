@@ -129,6 +129,7 @@ function CreateProductForm({ handleIsOpen }: { handleIsOpen: (value: boolean) =>
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+
         const formData = new FormData(e.currentTarget);
 
         try {
